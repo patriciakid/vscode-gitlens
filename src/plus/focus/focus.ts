@@ -526,6 +526,9 @@ export class FocusCommand extends QuickCommand<State> {
 			// onDidChangeValue: async (quickpick, value) => {},
 			onDidClickButton: async (quickpick, button) => {
 				switch (button) {
+					case ConnectIntegrationButton:
+						this.sendTitleActionTelemetry('connect', context);
+						return this.next([connectMoreIntegrationsItem]);
 					case LaunchpadSettingsQuickInputButton:
 						this.sendTitleActionTelemetry('settings', context);
 						void commands.executeCommand('workbench.action.openSettings', 'gitlens.launchpad');
@@ -545,6 +548,7 @@ export class FocusCommand extends QuickCommand<State> {
 						await updateItems(quickpick);
 						break;
 				}
+				return undefined;
 			},
 
 			onDidClickItemButton: async (quickpick, button, { group, item }) => {
