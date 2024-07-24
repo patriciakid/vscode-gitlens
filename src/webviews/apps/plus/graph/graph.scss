@@ -1213,3 +1213,34 @@ hr {
 	padding: 0px 4px 2px 4px;
 	font-family: var(--vscode-editor-font-family);
 }
+
+sl-option[aria-selected='true']::part(base),
+sl-option:not([aria-selected='true']):hover::part(base),
+sl-option:not([aria-selected='true']):focus::part(base) {
+	background-color: var(--vscode-list-activeSelectionBackground);
+	color: var(--vscode-list-activeSelectionForeground);
+}
+
+sl-select::part(combobox) {
+	--sl-input-color: var(--color-foreground);
+	--sl-input-color-hover: var(--color-foreground);
+	padding: 0 0.75rem;
+	color: var(--color-foreground);
+	border-radius: var(--sl-border-radius-small);
+}
+
+sl-select::part(display-input) {
+	field-sizing: content;
+}
+
+sl-select::part(expand-icon) {
+	margin-inline-start: var(--sl-spacing-x-small);
+}
+
+sl-select[filled]:hover::part(combobox) {
+	background-color: var(--color-graph-actionbar-selectedBackground);
+}
+
+sl-select[filled]:focus::part(combobox) {
+	background-color: var(--color-graph-actionbar-selectedBackground);
+}

@@ -1265,7 +1265,7 @@ export function GraphWrapper({
 					<div className="titlebar__row">
 						<div className="titlebar__group">
 							<GlTooltip placement="top" content="Branch Visibility">
-								<SlSelect value={branchVisibility} onSlChange={handleBranchVisibility} hoist>
+								<SlSelect value={branchVisibility} onSlChange={handleBranchVisibility} hoist filled>
 									<CodeIcon icon="chevron-down" slot="expand-icon"></CodeIcon>
 									<SlOption value="branch-all">
 										<CodeIcon
