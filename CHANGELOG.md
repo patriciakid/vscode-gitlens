@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Added
 
 - Shows GitLab merge requests in the _Launchpad_ when GitLab integration is connected
+- Lets connect GitLab integration right from the _Launchpad_
 
 ### Fixed
 
