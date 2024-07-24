@@ -13,6 +13,8 @@ import type {
 	OnFormatCommitDateTime,
 } from '@gitkraken/gitkraken-components';
 import GraphContainer, { CommitDateTimeSources, refZone } from '@gitkraken/gitkraken-components';
+import type { SlChangeEvent } from '@shoelace-style/shoelace';
+import { SlOption, SlSelect } from '@shoelace-style/shoelace/dist/react';
 import { VSCodeCheckbox, VSCodeRadio, VSCodeRadioGroup } from '@vscode/webview-ui-toolkit/react';
 import type { FormEvent, MouseEvent, ReactElement } from 'react';
 import React, { createElement, useEffect, useMemo, useRef, useState } from 'react';
@@ -549,23 +551,26 @@ export function GraphWrapper({
 		return searchIndex < 1 ? 1 : searchIndex + 1;
 	}, [activeRow, searchResults]);
 
-	const isAllBranches = useMemo(() => {
-		if (includeOnlyRefsById == null) {
-			return true;
+	const branchVisibility = useMemo(() => {
+		let visibility =
+			includeOnlyRefsById == null || Object.keys(includeOnlyRefsById).length === 0
+				? 'branch-all'
+				: 'branch-current';
+
+		// We can't currently support showing all branchs on virtual repos
+		if (visibility === 'branch-all' && repo?.isVirtual === true) {
+			visibility = 'branch-current';
 		}
-		return Object.keys(includeOnlyRefsById).length === 0;
-	}, [includeOnlyRefsById]);
+
+		return visibility;
+	}, [repo, includeOnlyRefsById]);
 
 	const hasFilters = useMemo(() => {
-		if (!isAllBranches || graphConfig?.onlyFollowFirstParent) return true;
+		if (graphConfig?.onlyFollowFirstParent) return true;
 		if (excludeTypes == null) return false;
 
 		return Object.values(excludeTypes).includes(true);
-	}, [excludeTypes, isAllBranches, graphConfig?.onlyFollowFirstParent]);
-
-	const hasSpecialFilters = useMemo(() => {
-		return !isAllBranches;
-	}, [isAllBranches]);
+	}, [excludeTypes, branchVisibility, graphConfig?.onlyFollowFirstParent]);
 
 	const handleSearchInput = (e: CustomEvent<SearchQuery>) => {
 		const detail = e.detail;
@@ -751,16 +756,15 @@ export function GraphWrapper({
 		}
 	};
 
-	// This can only be applied to one radio button for now due to a bug in the component: https://github.com/microsoft/fast/issues/6381
-	const handleLocalBranchFiltering = (e: Event | FormEvent<HTMLElement>) => {
-		const $el = e.target as HTMLInputElement;
-		const value = $el.value;
-		const isChecked = $el.checked;
-		const wantsAllBranches = value === 'branch-all' && isChecked;
-		if (isAllBranches === wantsAllBranches) {
-			return;
+	const handleBranchVisibility = (e: SlChangeEvent): void => {
+		const $el: any = e.target;
+		if ($el == null) return;
+
+		if ($el.value === 'branch-all') {
+			onIncludeOnlyRef?.(true);
+		} else if ($el.value === 'branch-current') {
+			onIncludeOnlyRef?.(false);
 		}
-		onIncludeOnlyRef?.(wantsAllBranches);
 	};
 
 	const handleMissingAvatars = (emails: GraphAvatars) => {
@@ -1260,47 +1264,61 @@ export function GraphWrapper({
 				{allowed && (
 					<div className="titlebar__row">
 						<div className="titlebar__group">
+							<GlTooltip placement="top" content="Branch Visibility">
+								<SlSelect value={branchVisibility} onSlChange={handleBranchVisibility} hoist>
+									<CodeIcon icon="chevron-down" slot="expand-icon"></CodeIcon>
+									<SlOption value="branch-all">
+										<CodeIcon
+											slot="checked-icon"
+											icon={branchVisibility === 'branch-all' ? 'check' : 'blank'}
+										></CodeIcon>
+										All Branches
+									</SlOption>
+									<SlOption value="branch-current">
+										<CodeIcon
+											slot="checked-icon"
+											icon={branchVisibility === 'branch-current' ? 'check' : 'blank'}
+										></CodeIcon>
+										{graphConfig?.useSmartBranchFiltering ? 'Smart Branches' : 'Current Branch'}
+										<GlTooltip placement="right" slot="suffix">
+											<CodeIcon icon="info"></CodeIcon>
+											<span slot="content">
+												{graphConfig?.useSmartBranchFiltering
+													? 'Shows relevant branches only'
+													: 'Shows current branch only'}
+											</span>
+										</GlTooltip>
+									</SlOption>
+								</SlSelect>
+							</GlTooltip>
 							<GlTooltip placement="top">
 								<PopMenu>
 									<button type="button" className="action-button" slot="trigger">
 										<span className={`codicon codicon-filter${hasFilters ? '-filled' : ''}`}></span>
-										{hasSpecialFilters && <span className="action-button__indicator"></span>}
 										<span
 											className="codicon codicon-chevron-down action-button__more"
 											aria-hidden="true"
 										></span>
 									</button>
 									<MenuList slot="content">
-										<MenuLabel>Filter options</MenuLabel>
-										<MenuItem role="none">
-											<VSCodeRadioGroup
-												orientation="vertical"
-												value={
-													isAllBranches && repo?.isVirtual !== true
-														? 'branch-all'
-														: 'branch-current'
-												}
-												readOnly={repo?.isVirtual === true}
-											>
-												<VSCodeRadio name="branching-toggle" value="branch-current">
-													{graphConfig?.useSmartBranchFiltering
-														? 'Show Smart Branches'
-														: 'Show Current Branch Only'}
-												</VSCodeRadio>
-												{repo?.isVirtual !== true && (
-													<VSCodeRadio
-														name="branching-toggle"
-														value="branch-all"
-														onChange={handleLocalBranchFiltering}
-													>
-														Show All Branches
-													</VSCodeRadio>
-												)}
-											</VSCodeRadioGroup>
-										</MenuItem>
-										<MenuDivider></MenuDivider>
+										<MenuLabel>Graph Filters</MenuLabel>
 										{repo?.isVirtual !== true && (
 											<>
+												<MenuItem role="none">
+													<GlTooltip
+														placement="right"
+														content="Only follow the first parent of merge commits to provide a more linear history"
+													>
+														<VSCodeCheckbox
+															value="onlyFollowFirstParent"
+															onChange={handleFilterChange}
+															defaultChecked={graphConfig?.onlyFollowFirstParent ?? false}
+														>
+															Simplify Merge History
+														</VSCodeCheckbox>
+													</GlTooltip>
+												</MenuItem>
+												<MenuDivider></MenuDivider>
 												<MenuItem role="none">
 													<VSCodeCheckbox
 														value="remotes"
@@ -1331,22 +1349,6 @@ export function GraphWrapper({
 											</VSCodeCheckbox>
 										</MenuItem>
 										<MenuDivider></MenuDivider>
-										{repo?.isVirtual !== true && (
-											<MenuItem role="none">
-												<GlTooltip
-													placement="right"
-													content="Only follow the first parent of merge commits to provide a more linear history"
-												>
-													<VSCodeCheckbox
-														value="onlyFollowFirstParent"
-														onChange={handleFilterChange}
-														defaultChecked={graphConfig?.onlyFollowFirstParent ?? false}
-													>
-														Simplify Merge History
-													</VSCodeCheckbox>
-												</GlTooltip>
-											</MenuItem>
-										)}
 										<MenuItem role="none">
 											<VSCodeCheckbox
 												value="mergeCommits"
@@ -1358,7 +1360,7 @@ export function GraphWrapper({
 										</MenuItem>
 									</MenuList>
 								</PopMenu>
-								<span slot="content">Filter Graph</span>
+								<span slot="content">Graph Filtering</span>
 							</GlTooltip>
 							<span>
 								<span className="action-divider"></span>
