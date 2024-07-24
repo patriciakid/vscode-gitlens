@@ -472,9 +472,6 @@ export class FocusCommand extends QuickCommand<State> {
 				}
 			}
 
-			if (hasDisconnectedIntegrations) {
-				items.push(createQuickPickSeparator(undefined), connectMoreIntegrationsItem);
-			}
 			return items;
 		};
 
