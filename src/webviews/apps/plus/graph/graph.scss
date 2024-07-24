@@ -395,12 +395,13 @@ button:not([disabled]),
 	> *:not(:first-child) .action-button {
 		padding-left: 0.5rem;
 		padding-right: 0.5rem;
+		height: 100%;
 	}
 
-	> *:not(:last-child),
-	> *:not(:last-child) .action-button {
-		padding-right: 0.5rem;
-	}
+	// > *:not(:last-child),
+	// > *:not(:last-child) .action-button {
+	// 	padding-right: 0.5rem;
+	// }
 
 	&:hover > *:not(:last-child),
 	&:active > *:not(:last-child),

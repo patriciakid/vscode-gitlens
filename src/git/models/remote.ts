@@ -9,6 +9,7 @@ import { isLightTheme } from '../../system/utils';
 import { parseGitRemoteUrl } from '../parsers/remoteParser';
 import type { RemoteProvider } from '../remotes/remoteProvider';
 import { getRemoteProviderThemeIconString } from '../remotes/remoteProvider';
+import type { GitBranch } from './branch';
 
 export type GitRemoteType = 'fetch' | 'push';
 
@@ -93,6 +94,25 @@ export class GitRemote<TProvider extends RemoteProvider | undefined = RemoteProv
 		const repository = Container.instance.git.getRepository(this.repoPath);
 		await repository?.setRemoteAsDefault(this, value);
 	}
+}
+
+export async function getDefaultBranchName(
+	container: Container,
+	repoPath: string,
+	branch?: GitBranch,
+): Promise<string | undefined> {
+	const remoteName = branch?.getRemoteName();
+	if (remoteName) {
+		const name = await container.git.getDefaultBranchName(repoPath, remoteName);
+		if (name != null) return `${remoteName}/${name}`;
+	}
+
+	const remote = await container.git.getBestRemoteWithIntegration(repoPath);
+	if (remote == null) return undefined;
+
+	const integration = await remote.getIntegration();
+	const defaultBranch = await integration?.getDefaultBranch?.(remote.provider.repoDesc);
+	return `${remote.name}/${defaultBranch?.name}`;
 }
 
 export function getHighlanderProviders(remotes: GitRemote<RemoteProvider>[]) {

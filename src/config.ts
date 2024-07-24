@@ -388,6 +388,9 @@ export interface GraphConfig {
 	readonly dateStyle: DateStyle | null;
 	readonly defaultItemLimit: number;
 	readonly dimMergeCommits: boolean;
+	readonly experimental: {
+		readonly useSmartBranchFiltering: boolean;
+	};
 	readonly highlightRowsOnRefHover: boolean;
 	readonly layout: 'editor' | 'panel';
 	readonly minimap: {

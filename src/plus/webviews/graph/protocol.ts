@@ -178,6 +178,7 @@ export interface GraphComponentConfig {
 	enabledRefMetadataTypes?: GraphRefMetadataType[];
 	enableMultiSelection?: boolean;
 	highlightRowsOnRefHover?: boolean;
+	idLength?: number;
 	minimap?: boolean;
 	minimapDataType?: Config['graph']['minimap']['dataType'];
 	minimapMarkerTypes?: GraphMinimapMarkerTypes[];
@@ -186,7 +187,7 @@ export interface GraphComponentConfig {
 	scrollRowPadding?: number;
 	showGhostRefsOnRowHover?: boolean;
 	showRemoteNamesOnRefs?: boolean;
-	idLength?: number;
+	useSmartBranchFiltering?: boolean;
 }
 
 export interface GraphColumnConfig {

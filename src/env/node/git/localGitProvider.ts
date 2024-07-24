@@ -2995,7 +2995,7 @@ export class LocalGitProvider implements GitProvider, Disposable {
 
 		if (!remote) {
 			try {
-				const data = await this.git.symbolic_ref(repoPath, 'HEAD');
+				const data = await this.git.symbolic_ref(repoPath, `refs/remotes/${remote ?? 'origin'}/HEAD`);
 				if (data != null) return data.trim();
 			} catch {}
 		}

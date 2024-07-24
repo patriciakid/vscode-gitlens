@@ -1282,6 +1282,11 @@ export function GraphWrapper({
 												}
 												readOnly={repo?.isVirtual === true}
 											>
+												<VSCodeRadio name="branching-toggle" value="branch-current">
+													{graphConfig?.useSmartBranchFiltering
+														? 'Show Smart Branches'
+														: 'Show Current Branch Only'}
+												</VSCodeRadio>
 												{repo?.isVirtual !== true && (
 													<VSCodeRadio
 														name="branching-toggle"
@@ -1291,9 +1296,6 @@ export function GraphWrapper({
 														Show All Branches
 													</VSCodeRadio>
 												)}
-												<VSCodeRadio name="branching-toggle" value="branch-current">
-													Show Current Branch Only
-												</VSCodeRadio>
 											</VSCodeRadioGroup>
 										</MenuItem>
 										<MenuDivider></MenuDivider>
@@ -1408,7 +1410,7 @@ export function GraphWrapper({
 											></span>
 										</button>
 										<MenuList slot="content">
-											<MenuLabel>Chart</MenuLabel>
+											<MenuLabel>Minimap</MenuLabel>
 											<MenuItem role="none">
 												<VSCodeRadioGroup
 													orientation="vertical"

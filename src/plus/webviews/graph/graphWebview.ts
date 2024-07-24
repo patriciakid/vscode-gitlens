@@ -37,7 +37,12 @@ import * as TagActions from '../../../git/actions/tag';
 import * as WorktreeActions from '../../../git/actions/worktree';
 import { GitSearchError } from '../../../git/errors';
 import { CommitFormatter } from '../../../git/formatters/commitFormatter';
-import { getBranchId, getBranchNameWithoutRemote, getRemoteNameFromBranchName } from '../../../git/models/branch';
+import {
+	getBranchId,
+	getBranchNameWithoutRemote,
+	getLocalBranchByUpstream,
+	getRemoteNameFromBranchName,
+} from '../../../git/models/branch';
 import type { GitCommit } from '../../../git/models/commit';
 import { isStash } from '../../../git/models/commit';
 import { uncommitted } from '../../../git/models/constants';
@@ -59,7 +64,7 @@ import {
 	isSha,
 	shortenRevision,
 } from '../../../git/models/reference';
-import { getRemoteIconUri } from '../../../git/models/remote';
+import { getDefaultBranchName, getRemoteIconUri } from '../../../git/models/remote';
 import { RemoteResourceType } from '../../../git/models/remoteResource';
 import type { RepositoryChangeEvent, RepositoryFileSystemChangeEvent } from '../../../git/models/repository';
 import {
@@ -676,7 +681,7 @@ export class GraphWebviewProvider implements WebviewProvider<State, State, Graph
 				this.updateExcludedType(this._graph, e.params);
 				break;
 			case UpdateIncludeOnlyRefsCommand.is(e):
-				this.updateIncludeOnlyRefs(this._graph, e.params.refs);
+				void this.updateIncludeOnlyRefs(this._graph, e.params.refs);
 				break;
 		}
 	}
@@ -2033,6 +2038,7 @@ export class GraphWebviewProvider implements WebviewProvider<State, State, Graph
 			dimMergeCommits: configuration.get('graph.dimMergeCommits'),
 			enableMultiSelection: this.container.prereleaseOrDebugging,
 			highlightRowsOnRefHover: configuration.get('graph.highlightRowsOnRefHover'),
+			idLength: configuration.get('advanced.abbreviatedShaLength'),
 			minimap: configuration.get('graph.minimap.enabled'),
 			minimapDataType: configuration.get('graph.minimap.dataType'),
 			minimapMarkerTypes: this.getMinimapMarkerTypes(),
@@ -2041,7 +2047,7 @@ export class GraphWebviewProvider implements WebviewProvider<State, State, Graph
 			scrollMarkerTypes: this.getScrollMarkerTypes(),
 			showGhostRefsOnRowHover: configuration.get('graph.showGhostRefsOnRowHover'),
 			showRemoteNamesOnRefs: configuration.get('graph.showRemoteNames'),
-			idLength: configuration.get('advanced.abbreviatedShaLength'),
+			useSmartBranchFiltering: configuration.get('graph.experimental.useSmartBranchFiltering'),
 		};
 		return config;
 	}
@@ -2312,7 +2318,7 @@ export class GraphWebviewProvider implements WebviewProvider<State, State, Graph
 		);
 	}
 
-	private updateIncludeOnlyRefs(graph: GitGraph | undefined, refs: GraphIncludeOnlyRef[] | undefined) {
+	private async updateIncludeOnlyRefs(graph: GitGraph | undefined, refs: GraphIncludeOnlyRef[] | undefined) {
 		let storedIncludeOnlyRefs: StoredGraphFilters['includeOnlyRefs'];
 
 		if (refs == null || refs.length === 0) {
@@ -2320,6 +2326,86 @@ export class GraphWebviewProvider implements WebviewProvider<State, State, Graph
 
 			storedIncludeOnlyRefs = undefined;
 		} else {
+			if (
+				graph != null &&
+				refs.length === 1 &&
+				refs[0].id === 'HEAD' &&
+				configuration.get('graph.experimental.useSmartBranchFiltering')
+			) {
+				// Add the default branch and if the current branch has a PR associated with it then add the base of the PR
+				const current = find(graph.branches.values(), b => b.current);
+
+				let includeDefault = true;
+
+				const [defaultBranchNameResult, prResult] = await Promise.allSettled([
+					getDefaultBranchName(this.container, graph.repoPath, current),
+					current?.getAssociatedPullRequest(),
+				]);
+
+				const pr = getSettledValue(prResult);
+				if (pr?.refs != null) {
+					let prBranch;
+
+					const remote = find(graph.remotes.values(), r => r.matches(pr.refs!.base.url));
+					if (remote != null) {
+						prBranch = graph.branches.get(`${remote.name}/${pr.refs.base.branch}`);
+					}
+
+					if (prBranch != null) {
+						refs.push({
+							id: prBranch.id,
+							name: prBranch.name,
+							type: 'remote',
+						});
+
+						includeDefault = false;
+					}
+				}
+
+				if (includeDefault) {
+					const defaultBranchName = getSettledValue(defaultBranchNameResult);
+					if (defaultBranchName != null && defaultBranchName !== current?.name) {
+						const defaultBranch = graph.branches.get(defaultBranchName);
+						if (defaultBranch != null) {
+							if (defaultBranch.remote) {
+								refs.push({
+									id: defaultBranch.id,
+									name: defaultBranch.name,
+									type: 'remote',
+								});
+
+								const localDefault = await getLocalBranchByUpstream(
+									this.repository!,
+									defaultBranchName,
+									graph.branches,
+								);
+								if (localDefault != null) {
+									refs.push({
+										id: localDefault.id,
+										name: localDefault.name,
+										type: 'head',
+									});
+								}
+							} else {
+								refs.push({
+									id: defaultBranch.id,
+									name: defaultBranch.name,
+									type: 'head',
+								});
+
+								if (defaultBranch.upstream != null && !defaultBranch.upstream.missing) {
+									refs.push({
+										id: getBranchId(graph.repoPath, true, defaultBranch.upstream.name),
+										name: defaultBranch.upstream.name,
+										type: 'remote',
+									});
+								}
+							}
+						}
+					}
+				}
+			}
+
 			storedIncludeOnlyRefs = {};
 			for (const ref of refs) {
 				storedIncludeOnlyRefs[ref.id] = {

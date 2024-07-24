@@ -2940,6 +2940,13 @@
 						"markdownDescription": "Specifies additional markers to show on the minimap in the _Commit Graph_",
 						"scope": "window",
 						"order": 102
+					},
+					"gitlens.graph.experimental.useSmartBranchFiltering": {
+						"type": "boolean",
+						"default": true,
+						"markdownDescription": "Specifies whether to replace the _Show Current Branch Only_ filter option on the _Commit Graph_ with a _Show Smart Branches_ option",
+						"scope": "window",
+						"order": 1000
 					}
 				}
 			},
