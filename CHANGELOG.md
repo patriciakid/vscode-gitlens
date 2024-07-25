@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Fixed
 
 - Fixes cloud patch creation error on azure repos
+- Fixes running unit tests and improves eslint configuration
+
+### Changed
+
+- Uses vscode-test to run unit-tests
+- GitLab & GitLab self-managed access tokens now require `api` scope instead of `read_api` to be able to merge Pull Requests.
 
 ## [15.2.1] - 2024-07-24
 
